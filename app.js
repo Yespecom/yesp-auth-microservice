@@ -1,6 +1,7 @@
 require("dotenv").config()
 const express = require("express")
 const app = express()
+const cors = require("cors") 
 const authRoutes = require("./routes/authRoutes")
 const storeRoutes = require("./routes/storeRoutes")
 const statusRoutes = require("./routes/statusRoutes") // Import new status routes
