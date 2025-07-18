@@ -9,6 +9,7 @@ const { connectMainDB } = require("./config/db") // Destructure connectMainDB
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+app.use(cors())
 
 connectMainDB()
 
