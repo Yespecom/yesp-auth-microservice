@@ -1,16 +1,28 @@
 require("dotenv").config()
 const express = require("express")
 const app = express()
-const cors = require("cors") 
 const authRoutes = require("./routes/authRoutes")
 const storeRoutes = require("./routes/storeRoutes")
 const statusRoutes = require("./routes/statusRoutes") // Import new status routes
 const { connectMainDB } = require("./config/db") // Destructure connectMainDB
-
+const cors = require("cors")
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
-app.use(cors())
+
+// CORS configuration
+const corsOptions = {
+  origin: [
+    "https://ecom.yespstudio.com",
+    "http://localhost:3000", // for local development
+    "http://localhost:3001", // for local development
+  ],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-API-Key"],
+}
+
+app.use(cors(corsOptions))
 
 connectMainDB()
 
