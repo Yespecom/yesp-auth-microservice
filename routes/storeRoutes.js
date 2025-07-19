@@ -1,47 +1,28 @@
 const express = require("express")
 const router = express.Router()
 const authMiddleware = require("../middleware/authMiddleware")
-const serviceKeyMiddleware = require("../middleware/serviceKeyMiddleware")
 const Store = require("../models/Store")
 
-// Example route that requires both user authentication (JWT) and service key authentication
-router.get("/my-store-info", authMiddleware, serviceKeyMiddleware, async (req, res) => {
+// Example route that requires user authentication (JWT)
+router.get("/my-store-info", authMiddleware, async (req, res) => {
   try {
-    // In a real application, you might fetch more detailed store info
-    // or perform actions specific to this store and user.
-    // Ensure the user's tenantId/storeId matches the service key's store/tenant.
-    if (req.tenantId !== req.store.tenantId || req.storeId !== req.store.storeId) {
-      return res.status(403).json({ message: "User's context does not match provided service key's store." })
+    // Get store info based on user's storeId from JWT token
+    const store = await Store.findOne({ storeId: req.storeId, tenantId: req.tenantId })
+
+    if (!store) {
+      return res.status(404).json({ message: "Store not found" })
     }
 
     res.status(200).json({
       message: "Access granted to store info",
-      storeName: req.store.storeName,
-      storeId: req.store.storeId,
-      tenantId: req.store.tenantId,
+      storeName: store.storeName,
+      storeId: store.storeId,
+      tenantId: store.tenantId,
       userRole: req.role,
       accessedByUserId: req.userId,
     })
   } catch (error) {
     console.error("Error fetching store info:", error)
-    res.status(500).json({ error: error.message || "Internal server error" })
-  }
-})
-
-// Dashboard summary endpoint
-router.get("/dashboard/summary", authMiddleware, async (req, res) => {
-  try {
-    // Mock data for now - replace with real database queries
-    const dashboardData = {
-      totalOrders: 0,
-      totalSales: 0,
-      totalProducts: 0,
-      totalCustomers: 0,
-    }
-
-    res.status(200).json(dashboardData)
-  } catch (error) {
-    console.error("Error fetching dashboard summary:", error)
     res.status(500).json({ error: error.message || "Internal server error" })
   }
 })
