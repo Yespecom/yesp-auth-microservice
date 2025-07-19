@@ -28,4 +28,22 @@ router.get("/my-store-info", authMiddleware, serviceKeyMiddleware, async (req, r
   }
 })
 
+// Dashboard summary endpoint
+router.get("/dashboard/summary", authMiddleware, async (req, res) => {
+  try {
+    // Mock data for now - replace with real database queries
+    const dashboardData = {
+      totalOrders: 0,
+      totalSales: 0,
+      totalProducts: 0,
+      totalCustomers: 0,
+    }
+
+    res.status(200).json(dashboardData)
+  } catch (error) {
+    console.error("Error fetching dashboard summary:", error)
+    res.status(500).json({ error: error.message || "Internal server error" })
+  }
+})
+
 module.exports = router
