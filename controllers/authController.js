@@ -13,7 +13,7 @@ exports.register = async (req, res) => {
     const { name, email, password, storeName, phoneNumber, category, gstNumber } = req.body
 
     if (!name || !email || !password || !storeName) {
-      return res.status(400).json({ message: "Required fields: name, email, password, storeName" })
+      return res.status(400).json({ success: false, message: "Required fields: name, email, password, storeName" })
     }
 
     const existing = await User.findOne({ email })
@@ -32,11 +32,12 @@ exports.register = async (req, res) => {
           `Your OTP for email verification is: ${otp}. It is valid for 10 minutes.`,
         )
         return res.status(200).json({
+          success: true,
           message: "Email already registered but not verified. A new OTP has been sent to your email.",
           email,
         })
       }
-      return res.status(409).json({ message: "Email already exists and is verified." })
+      return res.status(409).json({ success: false, message: "Email already exists and is verified." })
     }
 
     const tenantId = generateTenantId()
@@ -107,12 +108,13 @@ exports.register = async (req, res) => {
     )
 
     res.status(202).json({
+      success: true,
       message: "Registration successful. Please check your email to verify your account with the OTP.",
       email,
     })
   } catch (err) {
     console.error("Registration error:", err)
-    res.status(500).json({ error: err.message || "Internal server error" })
+    res.status(500).json({ success: false, error: err.message || "Internal server error" })
   }
 }
 
@@ -121,21 +123,21 @@ exports.verifyEmailOtp = async (req, res) => {
     const { email, otp } = req.body
 
     if (!email || !otp) {
-      return res.status(400).json({ message: "Email and OTP are required." })
+      return res.status(400).json({ success: false, message: "Email and OTP are required." })
     }
 
     const user = await User.findOne({ email })
 
     if (!user) {
-      return res.status(404).json({ message: "User not found." })
+      return res.status(404).json({ success: false, message: "User not found." })
     }
 
     if (user.isEmailVerified) {
-      return res.status(400).json({ message: "Email is already verified." })
+      return res.status(400).json({ success: false, message: "Email is already verified." })
     }
 
     if (user.emailVerificationOtp !== otp || user.emailVerificationOtpExpires < Date.now()) {
-      return res.status(400).json({ message: "Invalid or expired OTP." })
+      return res.status(400).json({ success: false, message: "Invalid or expired OTP." })
     }
 
     user.isEmailVerified = true
@@ -149,6 +151,7 @@ exports.verifyEmailOtp = async (req, res) => {
       { expiresIn: "7d" },
     )
     res.status(200).json({
+      success: true,
       token,
       tenantId: user.tenantId,
       storeId: user.storeId,
@@ -156,7 +159,7 @@ exports.verifyEmailOtp = async (req, res) => {
     })
   } catch (err) {
     console.error("Email verification error:", err)
-    res.status(500).json({ error: err.message || "Internal server error" })
+    res.status(500).json({ success: false, error: err.message || "Internal server error" })
   }
 }
 
@@ -165,12 +168,12 @@ exports.login = async (req, res) => {
     const { email, password } = req.body
 
     if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" })
+      return res.status(400).json({ success: false, message: "Email and password are required" })
     }
 
     const user = await User.findOne({ email })
     if (!user) {
-      return res.status(404).json({ message: "User not found" })
+      return res.status(404).json({ success: false, message: "User not found" })
     }
 
     if (!user.isEmailVerified) {
@@ -187,6 +190,7 @@ exports.login = async (req, res) => {
         `Your OTP for email verification is: ${otp}. It is valid for 10 minutes.`,
       )
       return res.status(403).json({
+        success: false,
         message: "Email not verified. A new OTP has been sent to your email. Please verify to log in.",
         email,
       })
@@ -194,7 +198,7 @@ exports.login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password)
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" })
+      return res.status(401).json({ success: false, message: "Invalid credentials" })
     }
 
     const token = jwt.sign(
@@ -214,10 +218,12 @@ exports.login = async (req, res) => {
       // For now, we'll log and proceed with login success.
     }
 
-    res.status(200).json({ token, tenantId: user.tenantId, storeId: user.storeId, message: "Login successful" })
+    res
+      .status(200)
+      .json({ success: true, token, tenantId: user.tenantId, storeId: user.storeId, message: "Login successful" })
   } catch (err) {
     console.error("Login error:", err)
-    res.status(500).json({ error: err.message || "Internal server error" })
+    res.status(500).json({ success: false, error: err.message || "Internal server error" })
   }
 }
 
@@ -226,14 +232,15 @@ exports.forgotPassword = async (req, res) => {
     const { email } = req.body
 
     if (!email) {
-      return res.status(400).json({ message: "Email is required." })
+      return res.status(400).json({ success: false, message: "Email is required." })
     }
 
     const user = await User.findOne({ email })
     if (!user) {
+      // Still return 200 to prevent email enumeration, but indicate success for the frontend
       return res
         .status(200)
-        .json({ message: "If an account with that email exists, a password reset OTP has been sent." })
+        .json({ success: true, message: "If an account with that email exists, a password reset OTP has been sent." })
     }
 
     const otp = generateOtp()
@@ -249,10 +256,10 @@ exports.forgotPassword = async (req, res) => {
       `Your OTP for password reset is: ${otp}. It is valid for 15 minutes.`,
     )
 
-    res.status(200).json({ message: "Password reset OTP sent to your email." })
+    res.status(200).json({ success: true, message: "Password reset OTP sent to your email." })
   } catch (err) {
     console.error("Forgot password error:", err)
-    res.status(500).json({ error: err.message || "Internal server error" })
+    res.status(500).json({ success: false, error: err.message || "Internal server error" })
   }
 }
 
@@ -261,17 +268,17 @@ exports.resetPassword = async (req, res) => {
     const { email, otp, newPassword } = req.body
 
     if (!email || !otp || !newPassword) {
-      return res.status(400).json({ message: "Email, OTP, and new password are required." })
+      return res.status(400).json({ success: false, message: "Email, OTP, and new password are required." })
     }
 
     const user = await User.findOne({ email })
 
     if (!user) {
-      return res.status(404).json({ message: "User not found." })
+      return res.status(404).json({ success: false, message: "User not found." })
     }
 
     if (user.passwordResetOtp !== otp || user.passwordResetOtpExpires < Date.now()) {
-      return res.status(400).json({ message: "Invalid or expired OTP." })
+      return res.status(400).json({ success: false, message: "Invalid or expired OTP." })
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10)
@@ -280,9 +287,9 @@ exports.resetPassword = async (req, res) => {
     user.passwordResetOtpExpires = undefined
     await user.save()
 
-    res.status(200).json({ message: "Password has been reset successfully." })
+    res.status(200).json({ success: true, message: "Password has been reset successfully." })
   } catch (err) {
     console.error("Reset password error:", err)
-    res.status(500).json({ error: err.message || "Internal server error" })
+    res.status(500).json({ success: false, error: err.message || "Internal server error" })
   }
 }
