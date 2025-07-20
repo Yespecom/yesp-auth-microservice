@@ -23,7 +23,7 @@ router.get("/verify-token", authMiddleware, (req, res) => {
       tenantId: req.tenantId,
       storeId: req.storeId,
       role: req.role,
-      name: req.user.name,
+     
     },
   })
 })
